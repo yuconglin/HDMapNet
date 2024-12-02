@@ -27,12 +27,15 @@ class Up(nn.Module):
         return self.conv(x1)
 
 
+# Used in camera image feature extraction. Efficient net is a CNN.
 class CamEncode(nn.Module):
     def __init__(self, C):
         super(CamEncode, self).__init__()
         self.C = C
 
         self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
+        # 320 and 112 is the output size of reduction_5 and reduction_4 according to 
+        # https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/model.py#L250
         self.up1 = Up(320+112, self.C)
 
     def get_eff_depth(self, x):
@@ -74,7 +77,10 @@ class BevEncode(nn.Module):
         self.layer1 = trunk.layer1
         self.layer2 = trunk.layer2
         self.layer3 = trunk.layer3
-
+        
+        # up1's input is [x1, x2].
+        # x1 is the output of resnet18 layer1 with the output channel 64.
+        # x2 is the output of resnet18 layer3 with the output channel 256.
         self.up1 = Up(64 + 256, 256, scale_factor=4)
         self.up2 = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear',

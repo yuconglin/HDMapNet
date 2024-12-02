@@ -10,6 +10,7 @@ from data.utils import gen_dx_bx
 
 class ViewTransformation(nn.Module):
     def __init__(self, fv_size, bv_size, n_views=6):
+        # We use 6 cameras as in the paper.
         super(ViewTransformation, self).__init__()
         self.n_views = n_views
         self.hw_mat = []
@@ -27,12 +28,14 @@ class ViewTransformation(nn.Module):
         self.hw_mat = nn.ModuleList(self.hw_mat)
 
     def forward(self, feat):
+        # Batch size, image number in a batch, channel, height, width.
         B, N, C, H, W = feat.shape
         feat = feat.view(B, N, C, H*W)
         outputs = []
         for i in range(N):
             output = self.hw_mat[i](feat[:, i]).view(B, C, self.bv_size[0], self.bv_size[1])
             outputs.append(output)
+        # stack along the second dimension (image number N).
         outputs = torch.stack(outputs, 1)
         return outputs
 
@@ -40,7 +43,7 @@ class ViewTransformation(nn.Module):
 class HDMapNet(nn.Module):
     def __init__(self, data_conf, instance_seg=True, embedded_dim=16, direction_pred=True, direction_dim=36, lidar=False):
         super(HDMapNet, self).__init__()
-        self.camC = 64
+        self.camC = 64 # output channel of CamEncode.
         self.downsample = 16
 
         dx, bx, nx = gen_dx_bx(data_conf['xbound'], data_conf['ybound'], data_conf['zbound'])
@@ -49,6 +52,7 @@ class HDMapNet(nn.Module):
         self.camencode = CamEncode(self.camC)
         fv_size = (data_conf['image_size'][0]//self.downsample, data_conf['image_size'][1]//self.downsample)
         bv_size = (final_H//5, final_W//5)
+        # Forward view to BEV.
         self.view_fusion = ViewTransformation(fv_size=fv_size, bv_size=bv_size)
 
         res_x = bv_size[1] * 3 // 4
@@ -68,11 +72,16 @@ class HDMapNet(nn.Module):
     def get_Ks_RTs_and_post_RTs(self, intrins, rots, trans, post_rots, post_trans):
         B, N, _, _ = intrins.shape
         Ks = torch.eye(4, device=intrins.device).view(1, 1, 4, 4).repeat(B, N, 1, 1)
-
+        # Here K is identity because:
+        '''
+        for HDMapNet, since we use fully-connected layers to learn the transformation implicitly,
+        we only need to project the learned features into a common plane with the extrinsics.
+        '''
         Rs = torch.eye(4, device=rots.device).view(1, 1, 4, 4).repeat(B, N, 1, 1)
         Rs[:, :, :3, :3] = rots.transpose(-1, -2).contiguous()
         Ts = torch.eye(4, device=trans.device).view(1, 1, 4, 4).repeat(B, N, 1, 1)
         Ts[:, :, :3, 3] = -trans
+        # Here the extrinsics were reversed from the input.
         RTs = Rs @ Ts
 
         post_RTs = None
