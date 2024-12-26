@@ -14,23 +14,34 @@ Estimating local semantics from sensory inputs is a central component for high-d
 **Questions/Requests:** 
 Please file an [issue](https://github.com/Tsinghua-MARS-Lab/HDMapNet-dev/issues) or email liqi17thu@gmail.com.
 
-### Preparation
-1. Download  [nuScenes dataset](https://www.nuscenes.org/) and put it to `dataset/` folder.
-
-2. Install dependencies by running
+### Set up an virtual environment and install the repo.
 ```
+sudo apt update
+sudo apt list python3.*
+
+sudo apt install python3.9 python3.9-venv
+
+python3.9 -m venv .venv
+. .venv/bin/activate
+
+pip install torch==2.1.0+cu121 -f https://download.pytorch.org/whl/cu121/torch_stable.html
+
+pip install torch-scatter -f https://data.pyg.org/whl/torch-2.1.0+cu121.html
+
+pip install torchvision==0.16.0+cu121 -f https://download.pytorch.org/whl/cu121/torch_stable.html
+
 pip install -r requirement.txt
 ```
 
-3. Install pytorch from `https://pytorch.org/get-started/locally/`
-   
-4. Install pytorch scatter from `https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html`
+### Preparation
+1. Download [nuScenes dataset](https://www.nuscenes.org/download) (the `Full dataset (v1.0)` part) and put it to your dataset folder.
+
+2. Also download the `Map expansion` part and put it under the `maps` folder of your dataset.
 
 ### Label
-Run `python vis_label.py ` for demo of vectorized labels. The visualizations are in `dataset/nuScenes/samples/GT`.
+Run `python vis_label.py /path/to/your/dataset/` for demo of vectorized labels. The visualizations are in `/your/dataset/nuScenes/samples/GT`.
 
 ### Training
-
 Run `python train.py --instance_seg --direction_pred --version [v1.0-trainval, v1.0-mini] --logdir [output place]`. 
 
 ### Evaluation
